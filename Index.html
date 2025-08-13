@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Festival Schedule Planner</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.day-selector {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.day-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background: #f0f0f0;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.day-btn.active {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr) 200px;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.time-header, .stage-header {
+    background: linear-gradient(45deg, #333, #555);
+    color: white;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.stage-header {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.time-slot {
+    background: #f8f9fa;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    min-height: 80px;
+    padding: 5px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
+}
+
+.time-slot.drag-over {
+    background: #e3f2fd;
+    border-color: #2196f3;
+    transform: scale(1.02);
+}
+
+.artist-card {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    cursor: grab;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-size: 0.85rem;
+    font-weight: 500;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+}
+
+.artist-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.artist-card.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.artist-card.priority-high {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+}
+
+.artist-card.priority-medium {
+    background: linear-gradient(45deg, #feca57, #ff9ff3);
+}
+
+.artist-card.priority-low {
+    background: linear-gradient(45deg, #48dbfb, #0abde3);
+}
+
+.artist-card.placeholder {
+    background: linear-gradient(45deg, #ddd, #bbb);
+    color: #666;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.artist-card.editing {
+    background: linear-gradient(45deg, #ffd700, #ffb347);
+    cursor: text;
+}
+
+.edit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.edit-form {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.edit-form h3 {
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.form-btn.save {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    color: white;
+}
+
+.form-btn.cancel {
+    background: #f44336;
+    color: white;
+}
+
+.form-btn.delete {
+    background: #ff9800;
+    color: white;
+}
+
+.form-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.artist-card.dimmed {
+    opacity: 0.3;
+    background: linear-gradient(45deg, #999, #777);
+}
+
+.artist-card.scheduled {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    border: 2px solid #2e7d32;
+}
+
+.my-schedule-column {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 400px;
+    overflow-y: auto;
+}
+
+.my-schedule-header {
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+}
+
+.my-schedule-item {
+    background: rgba(255, 255, 255, 0.15);
+    margin: 5px 0;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+.my-schedule-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.my-schedule-item.dragging {
+    opacity: 0.5;
+}
+
+.priority-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+}
+
+.priority-btn {
+    padding: 5px 15px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.priority-btn.high {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    color: white;
+}
+
+.priority-btn.dim {
+    background: linear-gradient(45deg, #999, #777);
+    color: white;
+}
+
+.priority-btn.reset {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: white;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+    .schedule-grid {
+        grid-template-columns: 60px repeat(7, 1fr) 150px;
+        font-size: 0.8rem;
+    }
+    
+    .stage-header {
+        font-size: 0.7rem;
+    }
+    
+    .artist-card {
+        font-size: 0.75rem;
+        padding: 6px 8px;
+    }
+    
+    .my-schedule-column {
+        min-height: 300px;
+    }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🎵 Festival Schedule Planner 🎵</h1>
+
+<div class="day-selector">
+    <button class="day-btn active" data-day="2025-08-29">Friday 8/29</button>
+    <button class="day-btn" data-day="2025-08-30">Saturday 8/30</button>
+    <button class="day-btn" data-day="2025-08-31">Sunday 8/31</button>
+</div>
+
+<div class="legend">
+    <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(45deg, #4caf50, #45a049);"></div>
+        <span>In My Schedule</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(45deg, #999, #777);"></div>
+        <span>Dimmed (Not Interested)</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24);"></div>
+        <span>All Other Artists</span>
+    </div>
+    <div class="legend-item">
+        <span>💡 <strong>Tip:</strong> Right-click artists to add to schedule or dim</span>
+    </div>
+</div>
+
+<div class="controls">
+    <button class="btn" onclick="addPlaceholder()">+ Add Discovery Slot</button>
+    <button class="btn" onclick="clearDay()">Clear Current Day</button>
+    <button class="btn" onclick="exportSchedule()">Export Schedule</button>
+</div>
+
+<div class="priority-controls">
+    <button class="priority-btn high" onclick="setAllPriority('scheduled')">✓ Add All Visible to My Schedule</button>
+    <button class="priority-btn dim" onclick="setAllPriority('dimmed')">Dim All Visible</button>
+    <button class="priority-btn reset" onclick="setAllPriority('normal')">Reset All to Normal</button>
+</div>
+
+<div class="schedule-grid" id="scheduleGrid">
+    <!-- Grid will be populated by JavaScript -->
+</div>
+
+<div class="stats">
+    <div class="stat-card">
+        <span class="stat-number" id="totalArtists">0</span>
+        <span>In My Schedule</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number" id="openSlots">0</span>
+        <span>Discovery Gaps (30+ min)</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number" id="conflicts">0</span>
+        <span>Potential Conflicts</span>
+    </div>
+</div>
+</div>
+
+<script>
+const stages = [
+    "Stadium: Evolved",
+    "The Shipyard 360", 
+    "Mega Vega",
+    "Fire Pit",
+    "Chill Dome",
+    "Silent Disco",
+    "Club Coast"
+];
+
+const timeSlots = [
+    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+    "17:00", "17:30", "18:00", "18:30", "19:00", "19:30",
+    "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00", "23:30"
+];
+
+const initialArtists = [
+{ name: "Tombz", date: "2025-08-29", startTime: "16:10", endTime: "17:10", stage: "Stadium: Evolved" },
+            { name: "Oppidan", date: "2025-08-29", startTime: "17:10", endTime: "18:10", stage: "Stadium: Evolved" },
+            { name: "Wax Motif", date: "2025-08-29", startTime: "18:10", endTime: "19:25", stage: "Stadium: Evolved" },
+            { name: "Tinlicker (DJ)", date: "2025-08-29", startTime: "19:25", endTime: "20:40", stage: "Stadium: Evolved" },
+            { name: "Louis The Chlid", date: "2025-08-29", startTime: "20:45", endTime: "21:55", stage: "Stadium: Evolved" },
+            { name: "Chris Lake", date: "2025-08-29", startTime: "22:00", endTime: "00:00", stage: "Stadium: Evolved" },
+
+            { name: "Bobby Afterlife", date: "2025-08-29", startTime: "14:30", endTime: "15:45", stage: "The Shipyard 360" },
+            { name: "GAD'M", date: "2025-08-29", startTime: "15:45", endTime: "16:45", stage: "The Shipyard 360" },
+            { name: "SHERM", date: "2025-08-29", startTime: "16:45", endTime: "17:45", stage: "The Shipyard 360" },
+            { name: "Ian Asher", date: "2025-08-29", startTime: "17:45", endTime: "18:45", stage: "The Shipyard 360" },
+            { name: "Benny Benassi", date: "2025-08-29", startTime: "18:45", endTime: "19:45", stage: "The Shipyard 360" },
+            { name: "Galantis", date: "2025-08-29", startTime: "19:55", endTime: "21:10", stage: "The Shipyard 360" },
+            { name: "Kaskade", date: "2025-08-29", startTime: "21:15", endTime: "22:45", stage: "The Shipyard 360" },
+
+            { name: "Doubled", date: "2025-08-29", startTime: "14:30", endTime: "15:30", stage: "Mega Vega" },
+            { name: "Malfunktion", date: "2025-08-29", startTime: "15:30", endTime: "16:30", stage: "Mega Vega" },
+            { name: "Caster", date: "2025-08-29", startTime: "16:30", endTime: "17:30", stage: "Mega Vega" },
+            { name: "Yookie", date: "2025-08-29", startTime: "17:30", endTime: "18:30", stage: "Mega Vega" },
+            { name: "Infekt", date: "2025-08-29", startTime: "18:30", endTime: "19:30", stage: "Mega Vega" },
+            { name: "Ray Volpe", date: "2025-08-29", startTime: "19:30", endTime: "20:30", stage: "Mega Vega" },
+            { name: "Kai Wachi", date: "2025-08-29", startTime: "20:35", endTime: "21:35", stage: "Mega Vega" },
+            { name: "Voyd", date: "2025-08-29", startTime: "21:45", endTime: "23:00", stage: "Mega Vega" },
+
+            { name: "D@tu X Yobi", date: "2025-08-29", startTime: "14:00", endTime: "14:45", stage: "Fire Pit" },
+            { name: "Parti", date: "2025-08-29", startTime: "14:45", endTime: "15:30", stage: "Fire Pit" },
+            { name: "Raakmo", date: "2025-08-29", startTime: "15:30", endTime: "16:15", stage: "Fire Pit" },
+            { name: "Rocky", date: "2025-08-29", startTime: "16:15", endTime: "17:00", stage: "Fire Pit" },
+            { name: "Kreation", date: "2025-08-29", startTime: "17:00", endTime: "18:00", stage: "Fire Pit" },
+            { name: "Waterspirit", date: "2025-08-29", startTime: "18:00", endTime: "19:00", stage: "Fire Pit" },
+            { name: "Darksiderz", date: "2025-08-29", startTime: "19:00", endTime: "20:00", stage: "Fire Pit" },
+            { name: "Audiofreq", date: "2025-08-29", startTime: "20:00", endTime: "21:00", stage: "Fire Pit" },
+            { name: "Lil Texas", date: "2025-08-29", startTime: "21:00", endTime: "22:00", stage: "Fire Pit" },
+
+            { name: "Kdin", date: "2025-08-29", startTime: "14:00", endTime: "15:00", stage: "Chill Dome" },
+            { name: "Komprezzor", date: "2025-08-29", startTime: "15:00", endTime: "16:00", stage: "Chill Dome" },
+            { name: "Svdden Death: Deadroom", date: "2025-08-29", startTime: "16:00", endTime: "17:00", stage: "Chill Dome" },
+            { name: "Kula", date: "2025-08-29", startTime: "17:00", endTime: "18:00", stage: "Chill Dome" },
+            { name: "Palo", date: "2025-08-29", startTime: "18:00", endTime: "19:15", stage: "Chill Dome" },
+            { name: "Zorza", date: "2025-08-29", startTime: "19:15", endTime: "20:30", stage: "Chill Dome" },
+            { name: "Neek", date: "2025-08-29", startTime: "20:30", endTime: "21:45", stage: "Chill Dome" },
+
+            { name: "Kakashi B2b Jovas", date: "2025-08-29", startTime: "14:30", endTime: "15:30", stage: "Silent Disco" },
+            { name: "Mystery Box", date: "2025-08-29", startTime: "15:30", endTime: "16:45", stage: "Silent Disco" },
+            { name: "Teryx", date: "2025-08-29", startTime: "16:45", endTime: "18:00", stage: "Silent Disco" },
+            { name: "Spydr b2b Trvshed", date: "2025-08-29", startTime: "18:00", endTime: "19:15", stage: "Silent Disco" },
+            { name: "Bubzie b2b Skampa", date: "2025-08-29", startTime: "19:15", endTime: "20:30", stage: "Silent Disco" },
+            { name: "Cyber Capone", date: "2025-08-29", startTime: "20:30", endTime: "21:45", stage: "Silent Disco" },
+            { name: "Remorse", date:"2025-08-29", startTime:"21:45", endTime:"23:00", stage:"Silent Disco" },
+
+            { name: "Heily Beatz", date: "2025-08-29", startTime: "16:00", endTime: "17:00", stage: "Club Coast" },
+            { name: "DJ Goose", date: "2025-08-29", startTime: "17:00", endTime: "18:00", stage: "Club Coast" },
+            { name: "Crwns", date: "2025-08-29", startTime: "18:00", endTime: "19:00", stage: "Club Coast" },
+            { name: "Mosborne", date: "2025-08-29", startTime: "19:00", endTime: "20:00", stage: "Club Coast" },
+            { name: "Sweet n Sour", date: "2025-08-29", startTime: "20:00", endTime: "21:00", stage: "Club Coast" },
+            { name: "Skyler", date: "2025-08-29", startTime: "21:00", endTime: "22:00", stage: "Club Coast" },
+
+            // Day Two
+            { name: "Sylo", date: "2025-08-30", startTime: "15:00", endTime: "16:00", stage: "Stadium: Evolved" },
+            { name: "Dogma", date: "2025-08-30", startTime: "16:00", endTime: "17:00", stage: "Stadium: Evolved" },
+            { name: "Dennett", date: "2025-08-30", startTime: "17:00", endTime: "18:00", stage: "Stadium: Evolved" },
+            { name: "Jon Casey", date: "2025-08-30", startTime: "18:00", endTime: "19:00", stage: "Stadium: Evolved" },
+            { name: "Zingara", date: "2025-08-30", startTime: "19:00", endTime: "20:00", stage: "Stadium: Evolved" },
+            { name: "Nghtmre B2B Dimension", date: "2025-08-30", startTime: "20:05", endTime: "21:20", stage: "Stadium: Evolved" },
+            { name: "Atliens", date: "2025-08-30", startTime: "21:25", endTime: "22:40", stage: "Stadium: Evolved" },
+            { name: "Excision", date: "2025-08-30", startTime: "22:45", endTime: "00:00", stage: "Stadium: Evolved" },
+
+            { name: "Confetti Mike", date: "2025-08-30", startTime: "14:30", endTime: "15:30", stage: "The Shipyard 360" },
+            { name: "Miriam", date: "2025-08-30", startTime: "15:30", endTime: "16:30", stage: "The Shipyard 360" },
+            { name: "Pods", date: "2025-08-30", startTime: "16:30", endTime: "17:30", stage: "The Shipyard 360" },
+            { name: "Kaleena Zanders", date: "2025-08-30", startTime: "17:30", endTime: "18:30", stage: "The Shipyard 360" },
+            { name: "Joshwa", date: "2025-08-30", startTime: "18:30", endTime: "19:30", stage: "The Shipyard 360" },
+            { name: "Westend", date: "2025-08-30", startTime: "19:30", endTime: "20:30", stage: "The Shipyard 360" },
+            { name: "LP Giobbi", date: "2025-08-30", startTime: "20:30", endTime: "21:40", stage: "The Shipyard 360" },
+            { name: "Sofi Tukker Wonderland", date: "2025-08-30", startTime: "21:45", endTime: "23:00", stage: "The Shipyard 360" },
+
+            { name: "Tazu", date: "2025-08-30", startTime: "14:00", endTime: "14:55", stage: "Mega Vega" },
+            { name: "Celo", date: "2025-08-30", startTime: "14:55", endTime: "15:55", stage: "Mega Vega" },
+            { name: "Distinct Motive", date: "2025-08-30", startTime:"15:55", endTime:"16:55", stage:"Mega Vega" },
+            { name: "Detox Unit", date: "2025-08-30", startTime: "16:55", endTime: "17:55", stage: "Mega Vega" },
+            { name: "Peekaboo B2B Caspa", date: "2025-08-30", startTime: "17:55", endTime: "18:55", stage: "Mega Vega" },
+            { name: "Deadmau5 (DNB Set)", date: "2025-08-30", startTime: "19:00", endTime: "20:05", stage: "Mega Vega" },
+            { name: "Of The Trees", date: "2025-08-30", startTime: "20:10", endTime: "21:25", stage: "Mega Vega" },
+            { name: "Seven Lions", date: "2025-08-30", startTime: "21:30", endTime: "22:45", stage: "Mega Vega" },
+
+            { name: "Kevin Alvarez B2B Lee Sandstrom", date: "2025-08-30", startTime: "14:45", endTime: "15:30", stage: "Fire Pit" },
+            { name: "INV3RT3D", date: "2025-08-30", startTime: "15:30", endTime: "16:30", stage: "Fire Pit" },
+            { name: "Silent Hype", date: "2025-08-30", startTime: "16:30", endTime: "17:30", stage: "Fire Pit" },
+            { name: "CLB", date: "2025-08-30", startTime: "17:30", endTime: "18:30", stage: "Fire Pit" },
+            { name: "Rohaan", date: "2025-08-30", startTime: "18:30", endTime: "19:30", stage: "Fire Pit" },
+            { name: "Muzz", date: "2025-08-30", startTime: "19:30", endTime: "20:30", stage: "Fire Pit" },
+            { name: "Skepsis", date: "2025-08-30", startTime: "20:30", endTime: "21:30", stage: "Fire Pit" },
+
+            { name: "DJ Alissa JO Deep House Yoga", date: "2025-08-30", startTime: "14:30", endTime: "15:45", stage: "Chill Dome" },
+            { name: "Atliens OG Trap Set", date: "2025-08-30", startTime: "15:45", endTime: "16:45", stage: "Chill Dome" },
+            { name: "Nanoos", date: "2025-08-30", startTime: "16:45", endTime: "17:45", stage: "Chill Dome" },
+            { name: "Matt Wyser", date: "2025-08-30", startTime:"17:45", endTime:"18:45", stage:"Chill Dome" },
+            { name: "Audio Support Department", date:"2025-08-30", startTime:"18:45", endTime:"19:45", stage:"Chill Dome" },
+            { name: "Fiyafly", date:"2025-08-30", startTime:"19:45", endTime:"20:45", stage:"Chill Dome" },
+
+            { name: "Tricat Meows", date: "2025-08-30", startTime: "14:30", endTime: "15:30", stage: "Silent Disco" },
+            { name: "Bre5lin", date: "2025-08-30", startTime: "15:30", endTime: "16:45", stage: "Silent Disco" },
+            { name: "GQueue", date: "2025-08-30", startTime: "16:45", endTime: "18:00", stage: "Silent Disco" },
+            { name: "Joe Mixin B2B Donnie Oz", date: "2025-08-30", startTime: "18:00", endTime: "19:15", stage: "Silent Disco" },
+            { name: "Lucy In The Sky", date: "2025-08-30", startTime: "19:15", endTime: "20:30", stage: "Silent Disco" },
+            { name: "Orlando Sounds", date:"2025-08-30", startTime:"20:30", endTime:"21:45", stage:"Silent Disco" },
+            { name: "WerØ", date:"2025-08-30", startTime:"21:45", endTime:"23:00", stage:"Silent Disco" },
+
+            { name: "Joseph Junar", date: "2025-08-30", startTime: "16:00", endTime: "17:00", stage: "Club Coast" },
+            { name: "NsQuared", date: "2025-08-30", startTime: "17:00", endTime: "18:00", stage: "Club Coast" },
+            { name: "Witz", date: "2025-08-30", startTime: "18:00", endTime: "19:00", stage: "Club Coast" },
+            { name: "Dr. Mar", date: "2025-08-30", startTime:"19:00", endTime:"20:00", stage:"Club Coast" },
+            { name: "Absnth", date:"2025-08-30", startTime:"20:00", endTime:"21:00", stage:"Club Coast" },
+            { name: "Hashbbc", date:"2025-08-30", startTime:"21:00", endTime:"22:00", stage:"Club Coast" },
+
+            // Day Three
+            { name: "Seth David", date: "2025-08-31", startTime: "16:00", endTime: "16:40", stage: "Stadium: Evolved" },
+            { name: "Heyz", date: "2025-08-31", startTime: "16:40", endTime: "17:40", stage: "Stadium: Evolved" },
+            { name: "Daily Bread", date: "2025-08-31", startTime: "17:40", endTime: "18:40", stage: "Stadium: Evolved" },
+            { name: "Liquid Stranger", date: "2025-08-31", startTime: "18:45", endTime: "19:45", stage: "Stadium: Evolved" },
+            { name: "Rezz", date: "2025-08-31", startTime: "19:55", endTime: "21:05", stage: "Stadium: Evolved" },
+            { name: "Zeds Dead", date: "2025-08-31", startTime: "21:15", endTime: "22:30", stage: "Stadium: Evolved" },
+
+            { name: "Yung Singh", date: "2025-08-31", startTime: "14:00", endTime: "15:25", stage: "The Shipyard 360" },
+            { name: "Control Freak", date: "2025-08-31", startTime: "15:25", endTime: "16:25", stage: "The Shipyard 360" },
+            { name: "Taiki Nulight", date: "2025-08-31", startTime: "16:25", endTime: "17:25", stage: "The Shipyard 360" },
+            { name: "LYNY", date: "2025-08-31", startTime: "17:25", endTime: "18:25", stage: "The Shipyard 360" },
+            { name: "Juelz", date: "2025-08-31", startTime: "18:25", endTime: "19:25", stage: "The Shipyard 360" },
+            { name: "Apashe", date: "2025-08-31", startTime: "19:30", endTime: "20:40", stage: "The Shipyard 360" },
+            { name: "RL Grime", date: "2025-08-31", startTime: "20:45", endTime: "22:00", stage: "The Shipyard 360" },
+
+            { name: "Drty Drty", date: "2025-08-31", startTime: "14:00", endTime: "15:00", stage: "Mega Vega" },
+            { name: "Orozco", date: "2025-08-31", startTime: "15:00", endTime: "16:00", stage: "Mega Vega" },
+            { name: "Mc4D", date: "2025-08-31", startTime: "16:00", endTime: "17:00", stage: "Mega Vega" },
+            { name: "Bonnie & Clyde", date: "2025-08-31", startTime: "17:00", endTime: "18:00", stage: "Mega Vega" },
+            { name: "Kream", date: "2025-08-31", startTime: "18:00", endTime: "19:00", stage: "Mega Vega" },
+            { name: "Timmy Trumpet", date: "2025-08-31", startTime: "19:05", endTime: "20:20", stage: "Mega Vega" },
+            { name: "Zedd", date: "2025-08-31", startTime: "20:30", endTime: "21:45", stage: "Mega Vega" },
+
+            { name: "Zyn B2B Boris", date: "2025-08-31", startTime: "15:20", endTime: "16:10", stage: "Fire Pit" },
+            { name: "Swando B2B Brute", date: "2025-08-31", startTime: "16:10", endTime: "17:00", stage: "Fire Pit" },
+            { name: "Prosecute", date: "2025-08-31", startTime:"17:00", endTime:"18:00", stage:"Fire Pit" },
+            { name: "Pyke", date:"2025-08-31", startTime:"18:00", endTime:"19:00", stage:"Fire Pit" },
+            { name: "Vktm", date:"2025-08-31", startTime:"19:00", endTime:"20:00", stage:"Fire Pit" },
+            { name: "Blvnkspvce B2B Hamro B2B Sqishi", date:"2025-08-31", startTime:"20:00", endTime:"21:00", stage:"Fire Pit" },
+
+            { name: "DJ Alissa JO Deep House Yoga", date: "2025-08-31", startTime: "14:30", endTime: "15:30", stage: "Chill Dome" },
+            { name: "Liquid Stranger B2B ???", date: "2025-08-31", startTime: "15:30", endTime: "16:30", stage: "Chill Dome" },
+            { name: "Yung Singh", date: "2025-08-31", startTime: "16:30", endTime: "17:30", stage: "Chill Dome" },
+            { name: "Intel", date: "2025-08-31", startTime:"17:30", endTime:"18:30", stage:"Chill Dome" },
+            { name: "Naughta", date:"2025-08-31", startTime:"18:30", endTime:"19:30", stage:"Chill Dome" },
+            { name: "Northside B2B L.Void", date:"2025-08-31", startTime:"19:30", endTime:"20:30", stage:"Chill Dome" },
+            { name: "Subverb", date:"2025-08-31", startTime:"20:30", endTime:"21:30", stage:"Chill Dome" },
+
+            { name: "Datalore", date: "2025-08-31", startTime: "14:30", endTime: "15:30", stage: "Silent Disco" },
+            { name: "Turbo", date: "2025-08-31", startTime: "15:30", endTime: "16:45", stage: "Silent Disco" },
+            { name: "KCranium", date: "2025-08-31", startTime: "16:45", endTime: "18:00", stage: "Silent Disco" },
+            { name: "Nola", date: "2025-08-31", startTime: "18:00", endTime: "19:00", stage: "Silent Disco" },
+            { name: "Alex Wolf", date: "2025-08-31", startTime: "19:00", endTime: "20:00", stage: "Silent Disco" },
+            { name: "Systm Error", date:"2025-08-31", startTime:"20:00", endTime:"21:00", stage:"Silent Disco" },
+            { name: "Ray Callahan", date:"2025-08-31", startTime:"21:00", endTime:"22:00", stage:"Silent Disco" },
+
+            { name: "Jitch", date: "2025-08-31", startTime: "16:00", endTime: "17:00", stage: "Club Coast" },
+            { name: "Goonba", date: "2025-08-31", startTime: "17:00", endTime: "18:00", stage: "Club Coast" },
+            { name: "Jeliah", date: "2025-08-31", startTime: "18:00", endTime: "19:00", stage: "Club Coast" },
+            { name: "Vela-Fi", date: "2025-08-31", startTime:"19:00", endTime:"20:00", stage:"Club Coast" },
+            { name: "Desma", date:"2025-08-31", startTime:"20:00", endTime:"21:00", stage:"Club Coast" },
+            { name: "DB Stereo", date:"2025-08-31", startTime:"21:00", endTime:"22:00", stage:"Club Coast" }
+];
+
+let currentDay = "2025-08-29";
+let schedule = {};
+let mySchedule = {}; // Personal schedule
+let artistPriorities = {}; // Track artist priorities (scheduled, dimmed, normal)
+
+function initializeSchedule() {
+    // Initialize empty schedule
+    ["2025-08-29", "2025-08-30", "2025-08-31"].forEach(date => {
+        schedule[date] = {};
+        mySchedule[date] = [];
+        stages.forEach(stage => {
+            schedule[date][stage] = {};
+            timeSlots.forEach(time => {
+                schedule[date][stage][time] = null;
+            });
+        });
+    });
+
+    // Place initial artists using closest time slot
+    initialArtists.forEach(artist => {
+        const closestTimeSlot = findClosestTimeSlot(artist.startTime);
+        if (schedule[artist.date] && schedule[artist.date][artist.stage]) {
+            schedule[artist.date][artist.stage][closestTimeSlot] = artist;
+        }
+        // Initialize all artists as normal priority
+        artistPriorities[`${artist.name}-${artist.date}`] = 'normal';
+    });
+}
+
+function createScheduleGrid() {
+    const grid = document.getElementById('scheduleGrid');
+    grid.innerHTML = '';
+
+    // Empty corner cell
+    const corner = document.createElement('div');
+    grid.appendChild(corner);
+
+    // Stage headers
+    stages.forEach(stage => {
+        const header = document.createElement('div');
+        header.className = 'stage-header';
+        header.textContent = stage;
+        grid.appendChild(header);
+    });
+
+    // My Schedule header
+    const myScheduleHeader = document.createElement('div');
+    myScheduleHeader.className = 'stage-header';
+    myScheduleHeader.textContent = 'My Schedule';
+    grid.appendChild(myScheduleHeader);
+
+    // Time slots with content
+    timeSlots.forEach(time => {
+        // Time header
+        const timeHeader = document.createElement('div');
+        timeHeader.className = 'time-header';
+        timeHeader.textContent = time;
+        grid.appendChild(timeHeader);
+
+        // Stage columns for this time
+        stages.forEach(stage => {
+            const slot = document.createElement('div');
+            slot.className = 'time-slot';
+            slot.dataset.time = time;
+            slot.dataset.stage = stage;
+            
+            // Add drop handlers
+            slot.addEventListener('dragover', handleDragOver);
+            slot.addEventListener('drop', handleDrop);
+            slot.addEventListener('dragenter', handleDragEnter);
+            slot.addEventListener('dragleave', handleDragLeave);
+            
+            // Add double-click to create new artist in empty slots
+            slot.addEventListener('dblclick', (e) => {
+                // Only create new artist if clicking on empty space, not on an existing card
+                if (e.target === slot) {
+                    createNewArtist(time, stage);
+                }
+            });
+
+            grid.appendChild(slot);
+        });
+
+        // My Schedule column - only show for first time slot
+        if (time === timeSlots[0]) {
+            const myScheduleColumn = document.createElement('div');
+            myScheduleColumn.className = 'my-schedule-column';
+            myScheduleColumn.style.gridRow = `span ${timeSlots.length}`;
+            myScheduleColumn.dataset.type = 'my-schedule';
+            
+            // Add drop handlers for my schedule
+            myScheduleColumn.addEventListener('dragover', handleDragOver);
+            myScheduleColumn.addEventListener('drop', handleMyScheduleDrop);
+            myScheduleColumn.addEventListener('dragenter', handleDragEnter);
+            myScheduleColumn.addEventListener('dragleave', handleDragLeave);
+            
+            const header = document.createElement('div');
+            header.className = 'my-schedule-header';
+            header.textContent = `My ${currentDay === "2025-08-29" ? "Friday" : currentDay === "2025-08-30" ? "Saturday" : "Sunday"} Schedule`;
+            myScheduleColumn.appendChild(header);
+            
+            grid.appendChild(myScheduleColumn);
+        }
+    });
+
+    // Place artist cards with spanning
+    placeArtistCards();
+    placeMySchedule();
+    updateStats();
+}
+
+function placeArtistCards() {
+    // Clear existing cards
+    document.querySelectorAll('.artist-card').forEach(card => card.remove());
+
+    // Create a map to track which artists we've already placed
+    const placedArtists = new Set();
+
+    // Place all artists for current day
+    stages.forEach(stage => {
+        timeSlots.forEach(time => {
+            const artist = schedule[currentDay][stage][time];
+            if (artist && !placedArtists.has(`${artist.name}-${artist.stage}-${artist.startTime}`)) {
+                const slot = document.querySelector(`[data-time="${time}"][data-stage="${stage}"]`);
+                if (slot) {
+                    const artistCard = createArtistCard(artist);
+                    
+                    // Calculate span
+                    const span = calculateTimeSpan(artist.startTime, artist.endTime);
+                    
+                    // Calculate offset within the time slot based on actual start time
+                    const offset = calculateTimeOffset(time, artist.startTime);
+                    
+                    // Set card height to span multiple slots
+                    const slotHeight = 80; // min-height of time-slot
+                    const slotGap = 10; // gap between slots
+                    const totalHeight = (slotHeight * span) + (slotGap * (span - 1));
+                    
+                    artistCard.style.height = `${totalHeight}px`;
+                    artistCard.style.minHeight = `${totalHeight}px`;
+                    artistCard.style.top = `${offset}px`;
+                    
+                    slot.appendChild(artistCard);
+                    placedArtists.add(`${artist.name}-${artist.stage}-${artist.startTime}`);
+                }
+            }
+        });
+    });
+}
+
+function calculateTimeOffset(slotTime, actualStartTime) {
+    const slotMinutes = timeToMinutes(slotTime);
+    const actualMinutes = timeToMinutes(actualStartTime);
+    
+    // Calculate how many minutes into the slot the artist actually starts
+    const offsetMinutes = actualMinutes - slotMinutes;
+    
+    // Convert to pixels (80px slot height / 30 minutes = 2.67px per minute)
+    const pixelsPerMinute = 80 / 30;
+    
+    return Math.max(0, offsetMinutes * pixelsPerMinute);
+}
+
+function calculateTimeSpan(startTime, endTime) {
+    // Convert times to minutes
+    const startMinutes = timeToMinutes(startTime);
+    let endMinutes = timeToMinutes(endTime);
+    
+    // Handle midnight crossing (e.g., 22:00 to 00:00)
+    if (endMinutes < startMinutes) {
+        endMinutes += 24 * 60; // Add 24 hours
+    }
+    
+    const durationMinutes = endMinutes - startMinutes;
+    
+    // Each time slot is 30 minutes, calculate how many slots this spans
+    const span = Math.max(1, Math.ceil(durationMinutes / 30));
+    
+    return span;
+}
+
+function timeToMinutes(timeStr) {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+}
+
+function createArtistCard(artist) {
+    const card = document.createElement('div');
+    card.className = 'artist-card';
+    card.draggable = true;
+    card.dataset.artist = JSON.stringify(artist);
+    
+    // Apply priority styling
+    const priorityKey = `${artist.name}-${artist.date}`;
+    const priority = artistPriorities[priorityKey] || 'normal';
+    
+    if (priority === 'dimmed') {
+        card.classList.add('dimmed');
+    } else if (priority === 'scheduled') {
+        card.classList.add('scheduled');
+    }
+    
+    // Create content with name and times
+    const nameDiv = document.createElement('div');
+    nameDiv.textContent = artist.name;
+    card.appendChild(nameDiv);
+    
+    const timesDiv = document.createElement('div');
+    timesDiv.className = 'artist-times';
+    timesDiv.textContent = `${artist.startTime} - ${artist.endTime}`;
+    card.appendChild(timesDiv);
+    
+    // Add drag handlers
+    card.addEventListener('dragstart', handleDragStart);
+    card.addEventListener('dragend', handleDragEnd);
+    
+    // Add double-click to edit
+    card.addEventListener('dblclick', () => editArtist(artist, card));
+    
+    // Add right-click context menu for priority
+    card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showPriorityMenu(e, artist);
+    });
+    
+    return card;
+}
+
+function handleDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', e.target.dataset.artist);
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDragEnter(e) {
+    e.target.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.target.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.target.classList.remove('drag-over');
+    
+    const artistData = JSON.parse(e.dataTransfer.getData('text/plain'));
+    const newTime = e.target.dataset.time;
+    const newStage = e.target.dataset.stage;
+    
+    // Remove from old position
+    if (schedule[artistData.date] && schedule[artistData.date][artistData.stage]) {
+        schedule[artistData.date][artistData.stage][artistData.startTime] = null;
+    }
+    
+    // Update artist data
+    artistData.startTime = newTime;
+    artistData.stage = newStage;
+    artistData.date = currentDay;
+    
+    // Place in new position
+    schedule[currentDay][newStage][newTime] = artistData;
+    
+    // Refresh grid
+    createScheduleGrid();
+}
+
+function switchDay(day) {
+    currentDay = day;
+    
+    // Update active button
+    document.querySelectorAll('.day-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.day === day) {
+            btn.classList.add('active');
+        }
+    });
+    
+    createScheduleGrid();
+}
+
+function addPlaceholder() {
+    const placeholderArtist = {
+        name: "🎵 Discover New Artist",
+        date: currentDay,
+        startTime: "14:00",
+        endTime: "15:00",
+        stage: stages[0]
+    };
+    
+    // Find first empty slot
+    let placed = false;
+    for (let stage of stages) {
+        for (let time of timeSlots) {
+            if (!schedule[currentDay][stage][time] && !placed) {
+                schedule[currentDay][stage][time] = placeholderArtist;
+                placeholderArtist.startTime = time;
+                placeholderArtist.stage = stage;
+                // Set end time to next slot
+                const timeIndex = timeSlots.indexOf(time);
+                placeholderArtist.endTime = timeSlots[timeIndex + 1] || "23:59";
+                placed = true;
+                break;
+            }
+        }
+        if (placed) break;
+    }
+    
+    createScheduleGrid();
+}
+
+function editArtist(artist, cardElement) {
+    const modal = document.createElement('div');
+    modal.className = 'edit-modal';
+    
+    modal.innerHTML = `
+        <div class="edit-form">
+            <h3>Edit Artist</h3>
+            <div class="form-group">
+                <label for="artistName">Artist Name:</label>
+                <input type="text" id="artistName" value="${artist.name}">
+            </div>
+            <div class="form-group">
+                <label for="artistStage">Stage:</label>
+                <select id="artistStage">
+                    ${stages.map(stage => 
+                        `<option value="${stage}" ${stage === artist.stage ? 'selected' : ''}>${stage}</option>`
+                    ).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="startTime">Start Time:</label>
+                <input type="time" id="startTime" value="${artist.startTime}">
+            </div>
+            <div class="form-group">
+                <label for="endTime">End Time:</label>
+                <input type="time" id="endTime" value="${artist.endTime}">
+            </div>
+            <div class="form-buttons">
+                <button class="form-btn save" onclick="saveArtistEdit('${artist.name}', '${artist.stage}', '${artist.startTime}')">Save</button>
+                <button class="form-btn delete" onclick="deleteArtist('${artist.name}', '${artist.stage}', '${artist.startTime}')">Delete</button>
+                <button class="form-btn cancel" onclick="cancelEdit()">Cancel</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus on name input
+    setTimeout(() => document.getElementById('artistName').focus(), 100);
+}
+
+function saveArtistEdit(originalName, originalStage, originalStartTime) {
+    const name = document.getElementById('artistName').value.trim();
+    const stage = document.getElementById('artistStage').value;
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    
+    if (!name || !startTime || !endTime) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    // Remove from old position
+    const oldSlotTime = findClosestTimeSlot(originalStartTime);
+    if (schedule[currentDay][originalStage] && schedule[currentDay][originalStage][oldSlotTime]) {
+        schedule[currentDay][originalStage][oldSlotTime] = null;
+    }
+    
+    // Create updated artist
+    const updatedArtist = {
+        name: name,
+        date: currentDay,
+        startTime: startTime,
+        endTime: endTime,
+        stage: stage
+    };
+    
+    // Place in new position (find closest time slot)
+    const newSlotTime = findClosestTimeSlot(startTime);
+    schedule[currentDay][stage][newSlotTime] = updatedArtist;
+    
+    cancelEdit();
+    createScheduleGrid();
+}
+
+function deleteArtist(originalName, originalStage, originalStartTime) {
+    if (confirm(`Delete ${originalName}?`)) {
+        const oldSlotTime = findClosestTimeSlot(originalStartTime);
+        if (schedule[currentDay][originalStage] && schedule[currentDay][originalStage][oldSlotTime]) {
+            schedule[currentDay][originalStage][oldSlotTime] = null;
+        }
+        cancelEdit();
+        createScheduleGrid();
+    }
+}
+
+function cancelEdit() {
+    const modal = document.querySelector('.edit-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function createNewArtist(time, stage) {
+    const newArtist = {
+        name: "New Artist",
+        date: currentDay,
+        startTime: time,
+        endTime: getNextTimeSlot(time),
+        stage: stage
+    };
+    
+    // Check if slot is already occupied
+    if (schedule[currentDay][stage][time]) {
+        alert('This time slot is already occupied. Please choose an empty slot.');
+        return;
+    }
+    
+    // Place the new artist
+    schedule[currentDay][stage][time] = newArtist;
+    
+    // Refresh grid and immediately open edit modal
+    createScheduleGrid();
+    
+    // Open edit modal for the new artist
+    setTimeout(() => {
+        editArtist(newArtist, null);
+    }, 100);
+}
+
+function getNextTimeSlot(currentTime) {
+    const currentIndex = timeSlots.indexOf(currentTime);
+    if (currentIndex >= 0 && currentIndex < timeSlots.length - 1) {
+        return timeSlots[currentIndex + 1];
+    }
+    // If it's the last slot, add 30 minutes
+    const [hours, minutes] = currentTime.split(':').map(Number);
+    const nextMinutes = minutes + 30;
+    if (nextMinutes >= 60) {
+        return `${String(hours + 1).padStart(2, '0')}:${String(nextMinutes - 60).padStart(2, '0')}`;
+    }
+    return `${String(hours).padStart(2, '0')}:${String(nextMinutes).padStart(2, '0')}`;
+}
+
+function findClosestTimeSlot(time) {
+    // Convert time to minutes for comparison
+    const [hours, minutes] = time.split(':').map(Number);
+    const targetMinutes = hours * 60 + minutes;
+    
+    let closestSlot = timeSlots[0];
+    let closestDiff = Infinity;
+    
+    timeSlots.forEach(slot => {
+        const [slotHours, slotMinutes] = slot.split(':').map(Number);
+        const slotTotalMinutes = slotHours * 60 + slotMinutes;
+        const diff = Math.abs(targetMinutes - slotTotalMinutes);
+        
+        if (diff < closestDiff) {
+            closestDiff = diff;
+            closestSlot = slot;
+        }
+    });
+    
+    return closestSlot;
+}
+
+function clearDay() {
+    if (confirm(`Clear all artists from ${currentDay}?`)) {
+        stages.forEach(stage => {
+            timeSlots.forEach(time => {
+                schedule[currentDay][stage][time] = null;
+            });
+        });
+        createScheduleGrid();
+    }
+}
+
+function exportSchedule() {
+    let exportText = "Festival Schedule Export\n\n";
+    
+    ["2025-08-29", "2025-08-30", "2025-08-31"].forEach(date => {
+        const dayName = date === "2025-08-29" ? "Friday" : date === "2025-08-30" ? "Saturday" : "Sunday";
+        exportText += `${dayName} ${date.split('-')[1]}/${date.split('-')[2]}:\n`;
+        
+        stages.forEach(stage => {
+            const dayArtists = [];
+            timeSlots.forEach(time => {
+                const artist = schedule[date][stage][time];
+                if (artist && !artist.name.includes('Discover')) {
+                    dayArtists.push(`${time} - ${artist.name}`);
+                }
+            });
+            
+            if (dayArtists.length > 0) {
+                exportText += `  ${stage}:\n`;
+                dayArtists.forEach(artist => {
+                    exportText += `    ${artist}\n`;
+                });
+            }
+        });
+        exportText += "\n";
+    });
+    
+    // Create download
+    const blob = new Blob([exportText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'festival-schedule.txt';
+    a.click();
+}
+
+function updateStats() {
+    // Use my schedule for stats instead of all artists
+    const myArtists = mySchedule[currentDay] || [];
+    
+    // Calculate gaps in personal schedule (30+ minutes)
+    const discoverySlots = calculateDiscoveryGaps(myArtists);
+    
+    // Calculate conflicts in my schedule only
+    let conflicts = 0;
+    for (let i = 0; i < myArtists.length; i++) {
+        for (let j = i + 1; j < myArtists.length; j++) {
+            if (doArtistsOverlap(myArtists[i], myArtists[j])) {
+                conflicts++;
+            }
+        }
+    }
+    
+    document.getElementById('totalArtists').textContent = myArtists.length;
+    document.getElementById('openSlots').textContent = discoverySlots;
+    document.getElementById('conflicts').textContent = conflicts;
+}
+
+function calculateDiscoveryGaps(artists) {
+    if (artists.length === 0) return 0;
+    
+    let gaps = 0;
+    const festivalStart = 14 * 60; // 2:00 PM in minutes
+    const festivalEnd = 24 * 60; // Midnight in minutes
+    
+    // Check gap before first artist
+    const firstArtistStart = timeToMinutes(artists[0].startTime);
+    if (firstArtistStart - festivalStart >= 30) {
+        gaps++;
+    }
+    
+    // Check gaps between consecutive artists
+    for (let i = 0; i < artists.length - 1; i++) {
+        const currentEnd = timeToMinutes(artists[i].endTime);
+        const nextStart = timeToMinutes(artists[i + 1].startTime);
+        
+        // Handle midnight crossing for end time
+        let adjustedCurrentEnd = currentEnd;
+        if (currentEnd < timeToMinutes(artists[i].startTime)) {
+            adjustedCurrentEnd = currentEnd + 24 * 60;
+        }
+        
+        // Calculate gap duration
+        let gapDuration;
+        if (adjustedCurrentEnd > 24 * 60) {
+            // Current artist goes past midnight, next artist is next day or early morning
+            gapDuration = 0; // No gap calculation across midnight
+        } else {
+            gapDuration = nextStart - adjustedCurrentEnd;
+        }
+        
+        if (gapDuration >= 30) {
+            gaps++;
+        }
+    }
+    
+    // Check gap after last artist (if festival continues)
+    const lastArtist = artists[artists.length - 1];
+    const lastArtistEnd = timeToMinutes(lastArtist.endTime);
+    let adjustedLastEnd = lastArtistEnd;
+    
+    // Handle midnight crossing
+    if (lastArtistEnd < timeToMinutes(lastArtist.startTime)) {
+        adjustedLastEnd = lastArtistEnd + 24 * 60;
+    }
+    
+    if (adjustedLastEnd < festivalEnd) {
+        const finalGap = festivalEnd - adjustedLastEnd;
+        if (finalGap >= 30) {
+            gaps++;
+        }
+    }
+    
+    return gaps;
+}
+
+function handleMyScheduleDrop(e) {
+    e.preventDefault();
+    e.target.classList.remove('drag-over');
+    
+    const artistData = JSON.parse(e.dataTransfer.getData('text/plain'));
+    
+    // Add to my schedule if not already there
+    const isAlreadyScheduled = mySchedule[currentDay].find(a => 
+        a.name === artistData.name && a.startTime === artistData.startTime
+    );
+    
+    if (!isAlreadyScheduled) {
+        mySchedule[currentDay].push(artistData);
+        mySchedule[currentDay].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+        
+        // Update priority
+        artistPriorities[`${artistData.name}-${artistData.date}`] = 'scheduled';
+        
+        // Refresh display
+        createScheduleGrid();
+    }
+}
+
+function placeMySchedule() {
+    const myScheduleColumn = document.querySelector('.my-schedule-column');
+    if (!myScheduleColumn) return;
+    
+    // Clear existing items (except header)
+    const items = myScheduleColumn.querySelectorAll('.my-schedule-item');
+    items.forEach(item => item.remove());
+    
+    // Add scheduled artists
+    mySchedule[currentDay].forEach(artist => {
+        const item = document.createElement('div');
+        item.className = 'my-schedule-item';
+        item.draggable = true;
+        item.dataset.artist = JSON.stringify(artist);
+        
+        const timeText = `${artist.startTime} - ${artist.endTime}`;
+        const stageText = artist.stage.split(':')[0]; // Shorten stage name
+        
+        item.innerHTML = `
+            <div style="font-weight: bold;">${artist.name}</div>
+            <div style="font-size: 0.75em; opacity: 0.8;">${timeText}</div>
+            <div style="font-size: 0.7em; opacity: 0.6;">${stageText}</div>
+        `;
+        
+        // Add drag handlers
+        item.addEventListener('dragstart', (e) => {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.artist);
+        });
+        
+        item.addEventListener('dragend', (e) => {
+            e.target.classList.remove('dragging');
+        });
+        
+        // Add right-click to remove from schedule
+        item.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            removeFromMySchedule(artist);
+        });
+        
+        myScheduleColumn.appendChild(item);
+    });
+}
+
+function removeFromMySchedule(artist) {
+    mySchedule[currentDay] = mySchedule[currentDay].filter(a => 
+        !(a.name === artist.name && a.startTime === artist.startTime)
+    );
+    
+    // Reset priority to normal
+    artistPriorities[`${artist.name}-${artist.date}`] = 'normal';
+    
+    createScheduleGrid();
+}
+
+function showPriorityMenu(e, artist) {
+    // Remove existing menu
+    const existingMenu = document.querySelector('.priority-menu');
+    if (existingMenu) existingMenu.remove();
+    
+    const menu = document.createElement('div');
+    menu.className = 'priority-menu';
+    menu.style.cssText = `
+        position: fixed;
+        top: ${e.clientY}px;
+        left: ${e.clientX}px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 1000;
+        padding: 5px 0;
+    `;
+    
+    const options = [
+        { text: '✓ Add to My Schedule', action: () => addToMySchedule(artist) },
+        { text: '◐ Dim (Not Interested)', action: () => setPriority(artist, 'dimmed') },
+        { text: '○ Reset to Normal', action: () => setPriority(artist, 'normal') }
+    ];
+    
+    options.forEach(option => {
+        const button = document.createElement('button');
+        button.textContent = option.text;
+        button.style.cssText = `
+            display: block;
+            width: 100%;
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.9em;
+        `;
+        button.onmouseover = () => button.style.background = '#f0f0f0';
+        button.onmouseout = () => button.style.background = 'none';
+        button.onclick = () => {
+            option.action();
+            menu.remove();
+        };
+        menu.appendChild(button);
+    });
+    
+    document.body.appendChild(menu);
+    
+    // Remove menu when clicking elsewhere
+    setTimeout(() => {
+        document.addEventListener('click', () => menu.remove(), { once: true });
+    }, 100);
+}
+
+function addToMySchedule(artist) {
+    const isAlreadyScheduled = mySchedule[currentDay].find(a => 
+        a.name === artist.name && a.startTime === artist.startTime
+    );
+    
+    if (!isAlreadyScheduled) {
+        mySchedule[currentDay].push(artist);
+        mySchedule[currentDay].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+    }
+    
+    setPriority(artist, 'scheduled');
+}
+
+function setPriority(artist, priority) {
+    artistPriorities[`${artist.name}-${artist.date}`] = priority;
+    
+    if (priority !== 'scheduled') {
+        // Remove from my schedule if not scheduled
+        mySchedule[currentDay] = mySchedule[currentDay].filter(a => 
+            !(a.name === artist.name && a.startTime === artist.startTime)
+        );
+    }
+    
+    createScheduleGrid();
+}
+
+function setAllPriority(priority) {
+    // Get all artists for current day
+    stages.forEach(stage => {
+        timeSlots.forEach(time => {
+            const artist = schedule[currentDay][stage][time];
+            if (artist && !artist.name.includes('Discover')) {
+                if (priority === 'scheduled') {
+                    addToMySchedule(artist);
+                } else {
+                    setPriority(artist, priority);
+                }
+            }
+        });
+    });
+}
+
+function doArtistsOverlap(artist1, artist2) {
+    // Convert times to minutes for comparison
+    const start1 = timeToMinutes(artist1.startTime);
+    let end1 = timeToMinutes(artist1.endTime);
+    const start2 = timeToMinutes(artist2.startTime);
+    let end2 = timeToMinutes(artist2.endTime);
+    
+    // Handle midnight crossing (e.g., 22:00 to 00:00)
+    if (end1 < start1) end1 += 24 * 60;
+    if (end2 < start2) end2 += 24 * 60;
+    
+    // Check if time periods overlap
+    return !(end1 <= start2 || end2 <= start1);
+}
+
+// Event listeners
+document.querySelectorAll('.day-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchDay(btn.dataset.day));
+});
+
+// Initialize
+initializeSchedule();
+createScheduleGrid();
+</script>
+</body>
+</html>
