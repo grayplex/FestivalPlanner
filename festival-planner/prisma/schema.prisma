@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
   //output   = "../src/generated/prisma"
 }
 
@@ -21,6 +22,9 @@ model Festival {
   startDate DateTime
   endDate   DateTime
   location  String?
+  city      String?
+  country   String?
+  imageUrl  String?
   stages    Stage[]
   sets      Set[]
   plans     Plan[]
