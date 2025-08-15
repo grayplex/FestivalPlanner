@@ -1,0 +1,296 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1)
+}
+
+.title {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent
+}
+
+.daySelector {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 10px
+}
+
+.dayBtn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background: #f0f0f0;
+    color: #333;
+    cursor: pointer;
+    transition: all .3s ease;
+    font-weight: bold
+}
+
+.dayBtnActive {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, .4)
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 20px 0;
+    flex-wrap: wrap
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .9rem
+}
+
+.legendColor {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all .3s ease
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, .4)
+}
+
+.priorityControls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+    flex-wrap: wrap
+}
+
+.priorityBtn {
+    padding: 5px 15px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: .8rem;
+    font-weight: bold;
+    transition: all .3s ease
+}
+
+.priorityHigh {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    color: #fff
+}
+
+.priorityDim {
+    background: linear-gradient(45deg, #999, #777);
+    color: #fff
+}
+
+.priorityReset {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: #fff
+}
+
+.scheduleGrid {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr) 200px;
+    gap: 10px;
+    margin-top: 20px
+}
+
+.timeHeader,
+.stageHeader {
+    background: linear-gradient(45deg, #333, #555);
+    color: #fff;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: .9rem
+}
+
+.stageHeader {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+.timeSlot {
+    background: #f8f9fa;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    min-height: 80px;
+    padding: 5px;
+    transition: all .3s ease;
+    position: relative;
+    overflow: visible
+}
+
+.dragOver {
+    background: #e3f2fd;
+    border-color: #2196f3;
+    transform: scale(1.02)
+}
+
+.artistCard {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    cursor: grab;
+    transition: all .3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+    font-size: .85rem;
+    font-weight: 500;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10
+}
+
+.artistCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, .2)
+}
+
+.dragging {
+    opacity: .5;
+    transform: rotate(5deg)
+}
+
+.dimmed {
+    opacity: .3;
+    background: linear-gradient(45deg, #999, #777)
+}
+
+.scheduled {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    border: 2px solid #2e7d32
+}
+
+.myScheduleColumn {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 400px;
+    overflow-y: auto
+}
+
+.myScheduleHeader {
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, .2);
+    border-radius: 6px
+}
+
+.myScheduleItem {
+    background: rgba(255, 255, 255, .15);
+    margin: 5px 0;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: .85rem;
+    cursor: grab;
+    transition: all .3s ease
+}
+
+.myScheduleItem:hover {
+    background: rgba(255, 255, 255, .25);
+    transform: translateY(-1px)
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px
+}
+
+.statCard {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, .1)
+}
+
+.statNumber {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block
+}
+
+.priorityMenu {
+    position: fixed;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+    z-index: 1000;
+    padding: 5px 0
+}
+
+@media (max-width:768px) {
+    .scheduleGrid {
+        grid-template-columns: 60px repeat(7, 1fr) 150px;
+        font-size: .8rem
+    }
+
+    .stageHeader {
+        font-size: .7rem
+    }
+
+    .artistCard {
+        font-size: .75rem;
+        padding: 6px 8px
+    }
+
+    .myScheduleColumn {
+        min-height: 300px
+    }
+}
