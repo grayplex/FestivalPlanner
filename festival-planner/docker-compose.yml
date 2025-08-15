@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:17
+    container_name: festival-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: festivals
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: festival-web
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/festivals?schema=public"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "dev_only_random_string"
+      # Add provider secrets here if you want OAuth inside Docker
+      # GOOGLE_ID: ...
+      # GOOGLE_SECRET: ...
+    ports:
+      - "3000:3000"
+    command: "npm run dev" # or "npm start" for a production build
+
+volumes:
+  dbdata:
